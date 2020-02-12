@@ -1,42 +1,152 @@
-import React, { useState, useEffect } from 'react';
-import style from './style.css';
-import { Link } from "react-router-dom";
+import React, { useState, useEffect, useRef } from 'react';
+import style from './style.js';
+import { withStyles } from '@material-ui/core/styles';
 import { connect } from 'react-redux';
-import {withRouter} from 'react-router-dom';
+import { addTodo, updateTodo, deleteTodo, deleteTodoList } from '../../store/actions/todoActions'
+
+import {Paper, Button, Container, Grid, InputBase, Divider, CssBaseline, Tooltip} from '@material-ui/core';
+
+import TodoListAdd from '../TodoListAdd';
+import TodoListShow from '../TodoListShow';
+import PlayCircleOutlineIcon from '@material-ui/icons/PlayCircleOutline';
+import PanToolIcon from '@material-ui/icons/PanTool';
 
 const TodoList = (props) => {
-  const [todoList, useTodoList] = useState(null)
-  const todoListId = props.location.pathname.replace('/todo/', '')
-  props.todos && console.log('propstodos', props.todos)
+  const [newTodo, useNewTodo] = useState({name: '', description: ''})
+  const [validationError, useValidationError] = useState(false)
+  const [showNewTodoDescription, useShowNewTodoDescription] = useState(false);
+  const [showDescription, useShowDescription] = useState({})
+  const [isRecording, setIsRecording] = useState(false)
+  const [recordingStatus, setRecordingStatus] = useState('')
+  const { classes } = props
 
- console.log('todo', todoList)
+  const inputRef = React.createRef()
 
   useEffect(() => {
-    if(props.todos && todoListId){
-      useTodoList(props.todos.filter(todoList => todoList.id == todoListId)[0].todoList)
+    if(isRecording){
+      setRecordingStatus('started')
     }
-  }, [props.todos])
+    if(!isRecording && recordingStatus == 'started'){
+      setRecordingStatus('finished')
+      playRecording()
+    }
+  }, [isRecording])
 
-  const onListChange = event => {
-    console.log(event.target.value)
+  const onTodoChange = (event, id) => {    
+    props.dispatch(updateTodo(recordingStatus, event.target.name, event.target.value, id))
   }
 
-  if(todoList){
-    return (<div>
-      {todoList.map(list => (
-        <div key={list.id}>
-          <input value={list.name} onChange={onListChange}/>
-        </div>
-    ))}
-    </div>)
+  const onNewTodoChange = event => {
+    useValidationError(false);
+    useNewTodo({...newTodo, [event.target.name]: event.target.value})
   }
-  return <div>...</div>
+
+  const submitTodo = () => {
+    if(newTodo.name.length < 3){
+      return useValidationError(true)
+    }
+    const todo = {
+      id: new Date().valueOf(),
+      name: newTodo.name,
+      description: newTodo.description,
+      date: new Date()
+    }
+    props.dispatch(addTodo(recordingStatus, todo))
+    useNewTodo({name: '', description: ''})
+    useShowNewTodoDescription(false)
+  }
+
+  const onDeleteTodo = id => {
+    props.dispatch(deleteTodo(recordingStatus, id))
+  }
+
+  const onShowDescription = id => {
+    let list = JSON.parse(JSON.stringify(showDescription))
+    list[id] = list[id] ? false : true
+    useShowDescription(list)
+  }
+
+  const playRecording = () => {
+    
+    let record = []
+    setTimeout(() => {
+      console.log('first settime')
+
+      record = JSON.parse(localStorage.getItem('record'))
+      console.log(record)
+      props.dispatch(deleteTodoList())
+      inputRef.current.click()
+    }, 500)
+    
+    setTimeout(() => {
+      const lol = inputRef.current
+      console.log('lol', lol)
+      console.log('second settime')
+      record.map((rec) => {
+        switch(rec.name){
+          case 'addTodo':
+            return addTodo(rec.todo)
+          case 'updateTodo':
+            return updateTodo(rec.targetName, rec.targetValue, rec.id)
+          case 'deleteTodo': 
+            return deleteTodo(rec.id)
+        }
+        })
+      setRecordingStatus('')
+    }, 4000)
+  } 
+
+  const onHandleRecording = () => {
+    setIsRecording(!isRecording)
+  }
+
+  return (
+    <div>
+      <br/><br/>
+      <Container component="main" maxWidth="xs">
+        <CssBaseline />
+        <Grid container spacing={2} direction="row" justify="center" alignItems="center">
+          <Button
+            ref={inputRef}
+            variant="contained"
+            color="primary"
+            className={classes.button}
+            startIcon={isRecording? <PanToolIcon/> : <PlayCircleOutlineIcon />}
+            onClick={onHandleRecording}
+            style={{color: `${isRecording? 'black' : 'white'}`}}
+          >
+            {isRecording ? 'Stop Recording' : 'Start Recording'}
+          </Button>
+        </Grid>
+        {isRecording && (
+          <React.Fragment>
+            <TodoListAdd 
+              newTodo={newTodo} 
+              onNewTodoChange={onNewTodoChange} 
+              useShowNewTodoDescription={useShowNewTodoDescription} 
+              showNewTodoDescription={showNewTodoDescription} 
+              submitTodo={submitTodo}
+              validationError={validationError}
+            />
+            <TodoListShow
+              todoList={props.todoList}
+              showDescription={showDescription}
+              onTodoChange={onTodoChange}
+              onDeleteTodo={onDeleteTodo}
+              onShowDescription={onShowDescription}
+            />
+          </React.Fragment>
+        )}
+      </Container>
+    </div>
+  )
+
 }
 
 const mapStateToProps = (state) => {
   return {
-    todos: state.todo.todos
+    todoList: state.todo.todoList,
   };
 };
 
-export default withRouter(connect(mapStateToProps)(TodoList));
+export default withStyles(style)(connect(mapStateToProps)(TodoList));

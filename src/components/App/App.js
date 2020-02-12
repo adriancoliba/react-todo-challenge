@@ -1,23 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import style from './App.css';
-import { BrowserRouter as Router, HashRouter, Switch, Route, Redirect, Link } from "react-router-dom";
 import { connect } from 'react-redux';
-import TodoLists from '../TodoLists';
 import TodoList from '../TodoList'; 
 import { getTodos } from '../../store/actions/todoActions';
+import Navigation from '../Navigation'
 
 const App = (props) => {
   useEffect(() => {
-    props.dispatch(getTodos());
+    if(localStorage.getItem('todos')) {
+      props.dispatch(getTodos());
+    }
   }, [])
+
   return (
-    <Router>
-      <Link to="/" style={{textAlign: 'center'}}>Todo Lists</Link>
-      <Switch>
-        <Route exact path="/"><TodoLists /></Route>
-        <Route path="/todo/:id"><TodoList /></Route>
-      </Switch>
-    </Router>
+    <div>
+        <Navigation/>
+        <TodoList />
+    </div>
   )
 
 }

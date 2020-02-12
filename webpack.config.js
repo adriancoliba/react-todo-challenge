@@ -23,7 +23,6 @@ module.exports = {
             }, 
             {
                 test: /\.css$/,
-                
                     loader: "css-loader",
                     options: {
                         modules: {
@@ -31,7 +30,13 @@ module.exports = {
                         },														
                     }
                 
-            }
+            }, 
+            {
+                test: /\.(jpg|png)$/,
+                use: {
+                  loader: 'url-loader',
+                },
+            },
               
         ]
     },
